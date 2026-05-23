@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api", tags=["jobs"])
 
 
 @router.get("/fetch-job-data")
-async def fetch_job_data(stepstone_pages: int = 10):
+async def fetch_job_data(stepstone_pages: int = 50):
     """
     Fetch job data from all sources:
     - ArbeitNow API
@@ -20,6 +20,7 @@ async def fetch_job_data(stepstone_pages: int = 10):
     Returns combined statistics and total jobs count
     """
     try:
+        stepstone_pages = max(1, min(stepstone_pages, 50))
         logger.info(f"Fetching job data with stepstone_pages={stepstone_pages}")
         # Run the blocking, sync orchestrator in a separate thread to avoid
         # using Playwright sync API inside the async event loop.

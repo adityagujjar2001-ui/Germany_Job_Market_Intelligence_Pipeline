@@ -16,7 +16,7 @@ RAW_HTML_DIR.mkdir(exist_ok=True)
 SCRAPER_CONFIG = {
     "stepstone": {
         "base_url": "https://www.stepstone.de/jobs/in-berlin?action=facet_selected%3bdisciplines%3bIT&di=IT",
-        "max_pages": 10,
+        "max_pages": 50,
         "output_csv_pattern": str(DATA_DIR / "stepstone_jobs_{timestamp}.csv"),
         "timeout": 60000,
         "page_delay_min": 2,
@@ -50,7 +50,7 @@ REQUIRED_FIELDS = [
     "location",
     "url",
     "company",
-    "salary",
+    "remote",
     "skills",
     "date_posted",
     "source",

@@ -38,26 +38,29 @@ def random_delay():
     time.sleep(random.uniform(2, 5))
 
 
-def extract_salary(salary_text):
-    """Extract salary range from text"""
-    if not salary_text:
-        return None
-    
-    # Remove currency symbols and find numbers
-    patterns = [
-        r'€\s?\d+[.,]?\d*',
-        r'\d+[.,]?\d*\s?€',
-        r'\d+\s?€\s?mtl',
-        r'\d+\s?€\s?pro Jahr',
-        r'\d+[.,]?\d*\s?(?:k|K)',
-    ]
 
-    for pattern in patterns:
-        match = re.search(pattern, salary_text, re.I)
-        if match:
-            return match.group(0)
 
-    return None
+
+def extract_remote(card):
+    """Detect remote / work-from-home info in a job card.
+
+    Looks for common German/English indicators like 'Home-Office',
+    'Homeoffice', 'Remote', 'Teilweise Home-Office', 'hybrid', etc.
+    Returns a boolean.
+    """
+    if not card:
+        return False
+
+    remote_keywords = re.compile(r"home[- ]?office|homeoffice|home office|remote|teilweise home-office|hybrid|telearbeit|vollst[äa]ndig remote|vollst[äa]ndig remote|vollst[äa]ndig homeoffice", re.I)
+
+    # Search visible text in the card
+    text = card.get_text(separator=" ", strip=True)
+    if text and remote_keywords.search(text):
+        return True
+
+    # Fallback: search for badge elements or specific spans
+    badge = card.find(string=remote_keywords)
+    return bool(badge)
 
 
 def extract_date_posted(date_text):
@@ -168,14 +171,8 @@ def scrape_page(page, url, page_number):
                 location = card.select_one('[data-at="job-item-location"]')
                 job_location = sanitize_text(location.get_text(strip=True) if location else "Berlin")
 
-                # Extract salary - look for any span with salary-related text
-                #salary_elem = card.find("span", string=re.compile(r"€|\d+[.,]\d+", re.I))
-                salary_elem = (
-                card.find("div", {"data-testid": "salary"}) or
-                card.find("span", {"data-testid": "salary-info"}) or
-                card.find(string=re.compile(r"€|EUR|per year|pro Jahr", re.I))
-                )
-                salary = extract_salary(salary_elem.get_text(strip=True) if salary_elem else None)
+                # Detect remote / work-from-home info
+                remote = extract_remote(card)
                 
                 # Extract date posted
                 date_elem = card.find("span", string=re.compile(r"vor|ago|gestern|today", re.I))
@@ -188,7 +185,6 @@ def scrape_page(page, url, page_number):
                 job_title = translate_text(job_title)
                 company_name = translate_text(company_name)
                 job_location = translate_text(job_location)
-                salary = translate_text(salary)
                 date_posted = translate_text(date_posted)
                 skills = translate_text(skills)
 
@@ -205,7 +201,7 @@ def scrape_page(page, url, page_number):
                         "title": job_title,
                         "company": company_name,
                         "location": job_location,
-                        "salary": salary,
+                        "remote": remote,
                         "skills": skills,
                         "date_posted": date_posted,
                         "url": job_url,
@@ -224,7 +220,7 @@ def scrape_page(page, url, page_number):
         raise
 
 
-def scrape_stepstone_jobs(max_pages=10):
+def scrape_stepstone_jobs(max_pages=50):
     """Main scraping function for StepStone"""
     print(f"Starting StepStone scraping... (max {max_pages} pages)")
     
